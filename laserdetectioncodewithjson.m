@@ -65,10 +65,20 @@ while hasFrame(videoReader)
     step(videoPlayer, frame);
 end
 
-% Save tracking data as JSON
+% Check if there are any tracking data points
 if ~isempty(trackingData)
+    % Interpolation to increase the number of observations
+    numDesiredPoints = 300; % Desired number of observations
+    totalTime = trackingData(end, 1); % Total time of the video
+    interpolatedTimes = linspace(0, totalTime, numDesiredPoints); % Equally spaced times
+    interpolatedX = interp1(trackingData(:, 1), trackingData(:, 2), interpolatedTimes, 'linear', 'extrap'); % Interpolating X
+    interpolatedY = interp1(trackingData(:, 1), trackingData(:, 3), interpolatedTimes, 'linear', 'extrap'); % Interpolating Y
+    
+    % Create a new matrix of tracking data with the interpolated points
+    trackingDataInterpolated = [interpolatedTimes', interpolatedX', interpolatedY'];
+    
     % Create a structure for JSON
-    jsonData = struct('time', trackingData(:, 1), 'x', trackingData(:, 2), 'y', trackingData(:, 3));
+    jsonData = struct('time', trackingDataInterpolated(:, 1), 'x', trackingDataInterpolated(:, 2), 'y', trackingDataInterpolated(:, 3));
     jsonString = jsonencode(jsonData); % Convert to JSON format
     
     % Save JSON data to file
@@ -95,4 +105,3 @@ end
 
 % Release resources
 release(videoPlayer);
-
