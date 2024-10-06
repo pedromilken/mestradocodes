@@ -1,8 +1,8 @@
 % Specify the directory containing JSON files
-%fid = fopen('C:\Users\pedro\OneDrive\Área de Trabalho\ESPIRAIS_NIATS_UFU\CONTROLE\coordenadascontrole\');
-%fid = fopen('C:\Users\pedro\OneDrive\Área de Trabalho\ESPIRAIS_NIATS_UFU\PD\estadiamentoH&Y1\coordenadasH&Y1\');
-%fid = fopen('C:\Users\pedro\OneDrive\Área de Trabalho\ESPIRAIS_NIATS_UFU\PD\estadiamentoH&Y2\coordenadasH&Y2\');
-fid = fopen('C:\Users\pedro\OneDrive\Área de Trabalho\ESPIRAIS_NIATS_UFU\PD\estadiamentoH&Y3\coordenadasH&Y3\');
+%dataDir = 'C:\Users\pedro\OneDrive\Área de Trabalho\ESPIRAIS_NIATS_UFU\CONTROLE\coordenadascontrole\';
+dataDir = 'C:\Users\pedro\OneDrive\Área de Trabalho\ESPIRAIS_NIATS_UFU\PD\estadiamentoH&Y1\coordenadasH&Y1\';
+%dataDir = 'C:\Users\pedro\OneDrive\Área de Trabalho\ESPIRAIS_NIATS_UFU\PD\estadiamentoH&Y2\coordenadasH&Y2\';
+%dataDir = 'C:\Users\pedro\OneDrive\Área de Trabalho\ESPIRAIS_NIATS_UFU\PD\estadiamentoH&Y3\coordenadasH&Y3';
 jsonFiles = dir(fullfile(dataDir, '*.json')); % Get all JSON files in the directory
 
 % Initialize a table to store results
