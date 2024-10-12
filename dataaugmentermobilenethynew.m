@@ -1,28 +1,5 @@
 % Definir o tamanho de entrada esperado pela VGG16 (ou outra rede)
-inputSize = [299, 299, 3];
-
-% Importar e separar dados para treinamento e teste
-imds = imageDatastore('dados', 'IncludeSubfolders', true, 'LabelSource', 'foldernames');
-[imdsTrain, imdsTest] = splitEachLabel(imds, 0.7, 'randomized');
-
-% Redimensionar as imagens para o tamanho de entrada esperado
-augimdsTrain = augmentedImageDatastore(inputSize(1:2), imdsTrain);
-augimdsTest = augmentedImageDatastore(inputSize(1:2), imdsTest);
-
-% Atribuir os rótulos conforme estadiamento e controle
-YTrain = zeros(size(imdsTrain.Labels)); % Inicializar rótulos
-YTest = zeros(size(imdsTest.Labels));   % Inicializar rótulos
-
-% Atribuir valores de estadiamento e controle
-YTrain(imdsTrain.Labels == 'estadiamentoH&Y1') = 1;
-YTrain(imdsTrain.Labels == 'estadiamentoH&Y2') = 2;
-YTrain(imdsTrain.Labels == 'estadiamentoH&Y3') = 3;
-YTrain(imdsTrain.Labels == 'CONTROLE') = 0;
-
-YTest(imdsTest.Labels == 'estadiamentoH&Y1') = 1;
-YTest(imdsTest.Labels == 'estadiamentoH&Y2') = 2;
-YTest(imdsTest.Labels == 'estadiamentoH&Y3') = 3;
-YTest(imdsTest.Labels == 'CONTROLE') = 0;
+inputSize = [224, 224, 3];
 
 % Definir o objeto de aumento de dados com transformações geométricas
 imageAugmenter = imageDataAugmenter( ...
@@ -34,6 +11,50 @@ imageAugmenter = imageDataAugmenter( ...
     'RandXShear', [-10, 10], ...           % Cisalhamento horizontal
     'RandYShear', [-10, 10]);              % Cisalhamento vertical
 
+% Função personalizada para ajuste de brilho e contraste
+function imgOut = customAugmenter(imgIn)
+    % Conversão para tipo single
+    imgOut = im2single(imgIn);
+    
+    % Aplicar um ajuste de brilho aleatório
+    brightnessFactor = 0.8 + (1.2 - 0.8) * rand();  % Fator de brilho entre 0.8 e 1.2
+    imgOut = imgOut * brightnessFactor;
+    
+    % Aplicar um ajuste de contraste aleatório
+    contrastFactor = 0.8 + (1.2 - 0.8) * rand();    % Fator de contraste entre 0.8 e 1.2
+    imgOut = imadjust(imgOut, [], [], contrastFactor);
+    
+    % Clampear os valores para [0, 1] após as transformações
+    imgOut = max(0, min(imgOut, 1));
+end
+
+% Importar e separar dados para treinamento e teste
+imds = imageDatastore('dados', 'IncludeSubfolders', true, 'LabelSource', 'foldernames');
+[imdsTrain, imdsTest] = splitEachLabel(imds, 0.7, 'randomized');
+
+% Criar um diretório temporário para armazenar as imagens aumentadas
+outputDir = fullfile(tempdir, 'augmented_images');
+if ~exist(outputDir, 'dir')
+    mkdir(outputDir);
+end
+
+% Aplicar aumento personalizado de brilho e contraste às imagens de treino
+% Processa lote a lote para aplicar as transformações personalizadas
+for i = 1:length(imdsTrain.Files)
+    % Ler imagem original
+    img = readimage(imdsTrain, i);
+    
+    % Aplicar função de aumento de brilho e contraste
+    img = customAugmenter(img);
+    
+    % Salvar a imagem aumentada no diretório temporário
+    outputFile = fullfile(outputDir, ['img_', num2str(i), '.png']); 
+    imwrite(img, outputFile);
+    
+    % Atualizar o caminho no ImageDatastore para apontar para a imagem aumentada
+    imdsTrain.Files{i} = outputFile;
+end
+
 % Criar um conjunto de imagens aumentado com transformações geométricas
 augimdsTrain = augmentedImageDatastore(inputSize(1:2), imdsTrain, ...
     'DataAugmentation', imageAugmenter);
@@ -42,12 +63,26 @@ augimdsTrain = augmentedImageDatastore(inputSize(1:2), imdsTrain, ...
 augimdsTest = augmentedImageDatastore(inputSize(1:2), imdsTest);
 
 % Carregar a rede ResNet50 (pode ser trocado por VGG16 ou outra rede)
-net = xception();
+net = resnet50();
 
 % Extrair características usando a camada 'avg_pool'
-layer = 'block14_sepconv2_act'; % ou outra camada, dependendo da rede
+layer = 'avg_pool'; % ou outra camada, dependendo da rede
 featuresTrain = activations(net, augimdsTrain, layer, 'OutputAs', 'rows');
 featuresTest = activations(net, augimdsTest, layer, 'OutputAs', 'rows');
+
+% Atribuir os rótulos conforme estadiamento e controle
+YTrain = zeros(size(imdsTrain.Labels)); % Inicializar rótulos
+YTest = zeros(size(imdsTest.Labels));   % Inicializar rótulos
+% Atribuir valores de estadiamento e controle
+YTrain(imdsTrain.Labels == 'estadiamentoH&Y1') = 1;
+YTrain(imdsTrain.Labels == 'estadiamentoH&Y2') = 2;
+YTrain(imdsTrain.Labels == 'estadiamentoH&Y3') = 3;
+YTrain(imdsTrain.Labels == 'CONTROLE') = 0;
+
+YTest(imdsTest.Labels == 'estadiamentoH&Y1') = 1;
+YTest(imdsTest.Labels == 'estadiamentoH&Y2') = 2;
+YTest(imdsTest.Labels == 'estadiamentoH&Y3') = 3;
+YTest(imdsTest.Labels == 'CONTROLE') = 0;
 
 % Treinar o classificador ECOC (Error-Correcting Output Codes)
 classifier = fitcecoc(featuresTrain, YTrain);
