@@ -2,22 +2,35 @@
 inputSize = [224, 224, 3];
 
 % Importar e separar dados para treinamento e teste
-imds = imageDatastore('dados', 'IncludeSubfolders', true, 'LabelSource', 'foldernames');
+imds = imageDatastore('dados\', 'IncludeSubfolders', true, 'LabelSource', 'foldernames');
 [imdsTrain, imdsTest] = splitEachLabel(imds, 0.7, 'randomized');
 
 % Carregar a rede VGG16
-net = vgg16
+net = vgg16();
+
+% Redimensionar as imagens para o tamanho de entrada esperado
+augimdsTrain = augmentedImageDatastore(inputSize(1:2), imdsTrain);
+augimdsTest = augmentedImageDatastore(inputSize(1:2), imdsTest);
+
+% Extrair características usando a camada 'conv5_3'
+layer = 'fc7';
+featuresTrain = activations(net, augimdsTrain, layer, 'OutputAs', 'rows');
+featuresTest = activations(net, augimdsTest, layer, 'OutputAs', 'rows');
 
 % Atribuir os rótulos conforme estadiamento e controle
 YTrain = zeros(size(imdsTrain.Labels)); % Inicializar rótulos
 YTest = zeros(size(imdsTest.Labels));   % Inicializar rótulos
 
 % Atribuir valores de estadiamento e controle
+YTrain(imdsTrain.Labels == 'estadiamentoH&Y1') = 1;
+YTrain(imdsTrain.Labels == 'estadiamentoH&Y2') = 2;
+YTrain(imdsTrain.Labels == 'estadiamentoH&Y3') = 3;
 YTrain(imdsTrain.Labels == 'CONTROLE') = 0;
-YTrain(imdsTrain.Labels == 'PD') = 1;
 
+YTest(imdsTest.Labels == 'estadiamentoH&Y1') = 1;
+YTest(imdsTest.Labels == 'estadiamentoH&Y2') = 2;
+YTest(imdsTest.Labels == 'estadiamentoH&Y3') = 3;
 YTest(imdsTest.Labels == 'CONTROLE') = 0;
-YTest(imdsTest.Labels == 'PD') = 1;
 % Treinar o classificador ECOC (Error-Correcting Output Codes)
 classifier = fitcecoc(featuresTrain, YTrain);
 
