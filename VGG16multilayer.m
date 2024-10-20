@@ -31,7 +31,7 @@ YTest(imdsTest.Labels == 'estadiamentoH&Y3') = 3;
 YTest(imdsTest.Labels == 'CONTROLE') = 0;
 
 % Definir as camadas de interesse
-layers = {'conv3_3', 'conv5_3', 'fc6', 'fc7'}; % Camadas mais profundas para evitar problemas de memória
+layers = {'fc8', 'conv5_3', 'fc6', 'fc7'}; % Camadas mais profundas para evitar problemas de memória
 
 % Inicializar células para armazenar as features de cada camada
 featuresTrainAllLayers = cell(length(layers), 1);
