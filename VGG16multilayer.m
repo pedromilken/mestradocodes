@@ -1,8 +1,11 @@
 % Definir o tamanho de entrada esperado pela VGG16
 inputSize = [224, 224, 3];
 
+% Definir o caminho dos dados
+dataDir = 'C:\Users\pedro\Downloads\dados'; % Substitua pelo caminho correto
+
 % Importar e separar dados para treinamento e teste
-imds = imageDatastore('dados', 'IncludeSubfolders', true, 'LabelSource', 'foldernames');
+imds = imageDatastore(dataDir, 'IncludeSubfolders', true, 'LabelSource', 'foldernames');
 [imdsTrain, imdsTest] = splitEachLabel(imds, 0.7, 'randomized');
 
 % Carregar a rede VGG16
@@ -34,7 +37,7 @@ layers = {'conv3_3', 'conv5_3', 'fc6', 'fc7'}; % Camadas mais profundas para evi
 featuresTrainAllLayers = cell(length(layers), 1);
 featuresTestAllLayers = cell(length(layers), 1);
 
-% Função auxiliar para calcular precisão, recall e F1-score
+% Função auxiliar para calcular precisão, recall e F1-score por classe
 calculateMetrics = @(confMat) struct( ...
     'precision', diag(confMat) ./ sum(confMat, 2), ... % Verdadeiros Positivos / (Verdadeiros Positivos + Falsos Positivos)
     'recall', diag(confMat) ./ sum(confMat, 1)', ...  % Verdadeiros Positivos / (Verdadeiros Positivos + Falsos Negativos)
@@ -66,48 +69,22 @@ for i = 1:length(layers)
     % Calcular a acurácia
     accuracy = mean(YPred == YTest);
     
-    % Calcular precisão, recall e F1-score
+    % Calcular precisão, recall e F1-score para cada classe
     metrics = calculateMetrics(confMat);
     
-    % Exibir métricas
+    % Exibir métricas por grupo
     disp(['Acurácia para a camada ', layer, ': ', num2str(accuracy)]);
-    disp(['Precisão média para a camada ', layer, ': ', num2str(nanmean(metrics.precision))]);
-    disp(['Recall médio para a camada ', layer, ': ', num2str(nanmean(metrics.recall))]);
-    disp(['F1-score médio para a camada ', layer, ': ', num2str(nanmean(metrics.f1))]);
     
-    % Calcular a precisão por grupo para o conjunto de treinamento e teste
-    classes = unique(imdsTest.Labels);  % Obtém os rótulos únicos
-    groupAccuraciesTrain = zeros(length(classes), 1); % Inicializa vetor de acurácia por grupo no treinamento
-    groupAccuraciesTest = zeros(length(classes), 1);  % Inicializa vetor de acurácia por grupo no teste
+    % Atribuir os nomes dos grupos para visualização
+    groupNames = {'CONTROLE', 'estadiamentoH&Y1', 'estadiamentoH&Y2', 'estadiamentoH&Y3'};
     
-    % Previsão para o conjunto de treinamento
-    YPredTrain = predict(classifier, featuresTrain);
-    
-    for j = 1:length(classes)
-        class = classes(j);  % Seleciona a classe atual
-        
-        % Conjunto de Treinamento
-        idxTrain = (imdsTrain.Labels == class);
-        N1Train = sum(YPredTrain(idxTrain) == YTrain(idxTrain)); % Correções para rótulos e predições
-        N2Train = sum(idxTrain);
-        if N2Train > 0
-            groupAccuraciesTrain(j) = N1Train / N2Train;
+    for j = 1:length(groupNames)
+        if ~isnan(metrics.f1(j)) % Verifica se o F1-score foi calculado corretamente
+            disp(['Precisão para ', groupNames{j}, ' na camada ', layer, ': ', num2str(metrics.precision(j))]);
+            disp(['Recall para ', groupNames{j}, ' na camada ', layer, ': ', num2str(metrics.recall(j))]);
+            disp(['F1-score para ', groupNames{j}, ' na camada ', layer, ': ', num2str(metrics.f1(j))]);
         else
-            groupAccuraciesTrain(j) = NaN; % Caso não haja exemplos da classe no treinamento
+            disp(['Métricas não disponíveis para ', groupNames{j}, ' na camada ', layer]);
         end
-        
-        % Conjunto de Teste
-        idxTest = (imdsTest.Labels == class);
-        N1Test = sum(YPred(idxTest) == YTest(idxTest));
-        N2Test = sum(idxTest);
-        if N2Test > 0
-            groupAccuraciesTest(j) = N1Test / N2Test;
-        else
-            groupAccuraciesTest(j) = NaN; % Caso não haja exemplos da classe no teste
-        end
-        
-        % Exibe a precisão para a classe atual
-        disp(['Acurácia para ', char(class), ' no conjunto de treinamento (camada ', layer, '): ', num2str(groupAccuraciesTrain(j))]);
-        disp(['Acurácia para ', char(class), ' no conjunto de teste (camada ', layer, '): ', num2str(groupAccuraciesTest(j))]);
     end
 end
