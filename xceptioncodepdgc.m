@@ -13,7 +13,7 @@ augimdsTrain = augmentedImageDatastore(inputSize(1:2), imdsTrain);
 augimdsTest = augmentedImageDatastore(inputSize(1:2), imdsTest);
 
 % Extrair características usando a camada 'conv5_3'
-layer = 'block14_sepconv2_act';
+layer = 'avg_pool';
 featuresTrain = activations(net, augimdsTrain, layer, 'OutputAs', 'rows');
 featuresTest = activations(net, augimdsTest, layer, 'OutputAs', 'rows');
 
