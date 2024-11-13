@@ -78,17 +78,22 @@ classifier.fit(features_train, Y_train)
 Y_pred_test = classifier.predict(features_test)
 Y_pred_train = classifier.predict(features_train)
 
-# Calcular e exibir a acurácia e F1-Score para as duas classes detectadas
+# Calcular e exibir a acurácia e F1-Score para as classes detectadas
 accuracy_test = accuracy_score(Y_test, Y_pred_test)
 f1_test = f1_score(Y_test, Y_pred_test, average=None)
-
 accuracy_train = accuracy_score(Y_train, Y_pred_train)
 f1_train = f1_score(Y_train, Y_pred_train, average=None)
 
 print(f'Acurácia no conjunto de teste: {accuracy_test}')
 print(f'Acurácia no conjunto de treinamento: {accuracy_train}')
 
-# Exibir o F1-Score para cada classe detectada
+# Exibir a acurácia para cada classe (GC, H&Y1, H&Y2, H&Y3) no conjunto de teste e treinamento
 for i, (label, idx) in enumerate(label_map.items()):
+    accuracy_class_test = (Y_test == idx).sum() / len(Y_test)
+    accuracy_class_train = (Y_train == idx).sum() / len(Y_train)
+    
+    print(f'Acurácia para {label} no conjunto de teste: {accuracy_class_test}')
+    print(f'Acurácia para {label} no conjunto de treinamento: {accuracy_class_train}')
+    
     print(f'F1-Score para {label} no conjunto de teste: {f1_test[i]}')
     print(f'F1-Score para {label} no conjunto de treinamento: {f1_train[i]}')
